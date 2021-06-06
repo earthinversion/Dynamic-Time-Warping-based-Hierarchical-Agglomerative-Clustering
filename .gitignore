@@ -4,3 +4,5 @@
 .ipynb_checkpoints/part2_remove_trend_seasonality_least_square_modeling-checkpoint.ipynb
 .ipynb_checkpoints/part3_-checkpoint.ipynb
 *.pyc
+.ipynb_checkpoints/part3_eof_analysis_of_data-checkpoint.ipynb
+*.asv

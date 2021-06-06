@@ -4,19 +4,46 @@ clear; close all
 load ./pickleFiles/all_data_wo_seasn;
 stns = stns';
 
+load ./MATLAB_output/pc1_U.mat;
+pcdata1_U = pcdata;
+clear pcdata;
+
+load ./MATLAB_output/pc1_N.mat;
+pcdata1_N = pcdata;
+clear pcdata;
+
+load ./MATLAB_output/pc1_E.mat;
+pcdata1_E = pcdata;
+clear pcdata;
+
+
 fileID = fopen('helper_files/twn_inland.txt','r');
 formatSpec = '%f %f'; %defining the format of the data
 sizeA = [2 Inf]; %defining the size of the data
 A = fscanf(fileID,formatSpec,sizeA); %reading the data using fscanf function
 fclose(fileID); %closing the file
 
+% size(pcdata1_U)
+% size(dU)
+
+% dU = dU - pcdata1_U;
+% dN = dN - pcdata1_N;
+% dE = dE - pcdata1_E;
+
+% [dU(:,1) dUnew(:,1)]
 data={dU, dN, dE};
+
+for dd=1:length(data)
+    
+end
 dtnm={'U', 'N', 'E'};
 for mode=1
 %     close all;
     for dd=1:length(data)
         %For dN
         [vp, var_porc, eof_p_n, exp_coef_n] = eof_n_optimizado_A2(data{dd});
+        
+        
 
         pcdata=exp_coef_n(:,mode);
         spatialdata=eof_p_n(:,mode);
@@ -33,7 +60,7 @@ for mode=1
         xq=min(slon):0.01:122.5;%max(slon);
         yq=19.8:0.01:25.6;
         [X,Y]=meshgrid(xq,yq);
-        F = scatteredInterpolant(slon',slat',eof_p_n(:,mode),'natural','linear');
+        F = scatteredInterpolant(slon',slat',spatialdata,'natural','linear');
         vq= F(X,Y);
         [r,c]=size(vq);
 
