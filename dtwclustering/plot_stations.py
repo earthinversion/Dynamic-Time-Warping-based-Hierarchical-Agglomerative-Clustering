@@ -4,6 +4,9 @@ import pandas as pd
 import os
 np.random.seed(45)  # to get the same color at each run
 
+east_coast_stations = ['PEPU', 'DAJN', 'NDHU', 'CHUN', 'SHUL', 'TUNH', 'DAWU', 'CHGO', 'YENL', 'SHAN', 'SOFN', 'TAPE',
+                       'ERPN', 'CHEN', 'TAPO', 'SINL', 'LONT', 'JULI', 'JSUI', 'TTUN', 'NAAO', 'SPAO', 'MOTN', 'SLNP', 'WARO', 'SLIN', 'WULU']
+
 
 def plot_station_map(station_data, minlon=None, maxlon=None, minlat=None, maxlat=None, outloc="Maps"):
     os.makedirs(outloc, exist_ok=True)
@@ -47,26 +50,54 @@ def plot_station_map(station_data, minlon=None, maxlon=None, minlat=None, maxlat
         frame=True
     )
     leftjustify, rightoffset = "TL", "5p/-5p"
+    rightjustify, leftoffset = "TR", "-8p/-1p"
+    for stn, lon, lat in zip(df["stn"].values, df["lon"].values, df["lat"].values):
+        # plot east coast stations in color
+        if stn in east_coast_stations:
+            fig.plot(
+                x=lon,
+                y=lat,
+                style="i10p",
+                color=colorsList[0],
+                pen="black",
+            )
+            fig.text(
+                x=lon,
+                y=lat,
+                text=stn,
+                justify=leftjustify,
+                angle=0,
+                offset=rightoffset,
+                fill="white",
+                font=f"6p,Helvetica-Bold,black",
+            )
+        else:
+            fig.plot(
+                x=lon,
+                y=lat,
+                style="i10p",
+                color='white',
+                pen="black",
+            )
+            # fig.text(
+            #     x=lon,
+            #     y=lat,
+            #     text=stn,
+            #     justify=rightjustify,
+            #     angle=0,
+            #     offset=leftoffset,
+            #     fill="white",
+            #     font=f"6p,Helvetica-Bold,black",
+            # )
+
     fig.plot(
-        x=df["lon"].values,
-        y=df["lat"].values,
+        x=np.nan,
+        y=np.nan,
         style="i10p",
         color=colorsList[0],
         pen="black",
-        label="Stations"
+        label='Stations'
     )
-
-    for snum in range(df.shape[0]):
-        fig.text(
-            x=df.loc[snum, 'lon'],
-            y=df.loc[snum, 'lat'],
-            text=f"{df.loc[snum, 'stn']}",
-            justify=leftjustify,
-            angle=0,
-            offset=rightoffset,
-            fill="white",
-            font=f"6p,Helvetica-Bold,black",
-        )
 
     fig.legend(position="JTR+jTR+o0.2c", box=True)
 
