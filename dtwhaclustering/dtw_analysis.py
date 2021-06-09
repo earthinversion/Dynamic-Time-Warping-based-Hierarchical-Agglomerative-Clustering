@@ -7,22 +7,36 @@ This module is built around the dtaidistance package for the DTW computation and
 :note: See https://dtaidistance.readthedocs.io/en/latest/usage/dtw.html for details on dtaidistance package
 """
 
+import matplotlib
+from scipy.cluster.hierarchy import to_tree
 from dtaidistance import dtw
 from dtaidistance import dtw_visualisation as dtwvis
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.cluster import hierarchy
+from scipy.cluster.hierarchy import fcluster
+from matplotlib.ticker import MaxNLocator
+
+
+import pandas as pd
 
 from dtaidistance.clustering.hierarchical import HierarchicalTree
 
-# default matplotlib parameters
-import matplotlib
 fontsize = 26
-font = {'family': 'Times',
-        'weight': 'bold',
-        'size': fontsize}
+fontsize0 = 20
+plt.rc('font', size=fontsize)  # controls default text size
+plt.rc('axes', titlesize=fontsize)  # fontsize of the title
+plt.rc('axes', labelsize=fontsize)  # fontsize of the x and y labels
+plt.rc('xtick', labelsize=fontsize-10)  # fontsize of the x tick labels
+plt.rc('ytick', labelsize=fontsize-10)  # fontsize of the y tick labels
+plt.rc('legend', fontsize=fontsize)  # fontsize of the legend
 
-matplotlib.rc('font', **font)
+# # default matplotlib parameters
+# font = {'family': 'Times',
+#         'weight': 'bold',
+#         'size': fontsize}
+
+# matplotlib.rc('font', **font)
 plt.rcParams["figure.figsize"] = (12, 6)
 plt.style.use('ggplot')
 
@@ -227,9 +241,9 @@ class dtw_clustering:
         :param latitudes: geographical y location of the signals in the matrix
         '''
         self.matrix = matrix
-        self.ind_rand_perm = None
         self.shuffled_matrix = []
         self.labels = labels
+        self.linkage_matrix = None
         if len(longitudes) > 0 and len(latitudes) > 0 and len(longitudes) == len(latitudes) == self.matrix.shape[0]:
             self.longitudes = longitudes
             self.latitudes = latitudes
@@ -260,6 +274,132 @@ class dtw_clustering:
             fig, ax = None, None
         return fig, ax
 
+    def plot_cluster_xymap(self, max_d, figname=None, xlabel='x', ylabel='y', figsize=(10, 10), fontsize=fontsize, colorbar=True, colorbarstep=1):
+        if self.longitudes is not None:
+            Z = self.get_linkage()
+            clusters = fcluster(Z, max_d, criterion='distance')
+            print(list(set(clusters)))
+            cluster_ticks = list(set(clusters))
+            print(cluster_ticks)
+
+            fig, ax = plt.subplots(figsize=figsize)
+            # plot points with cluster dependent colors
+
+            cax = ax.scatter(self.longitudes, self.latitudes,
+                             c=clusters, cmap='jet', s=120)
+
+            ax.set_xlabel(xlabel, fontsize=fontsize)
+            ax.set_ylabel(ylabel, fontsize=fontsize)
+            if colorbar:
+                cbar = fig.colorbar(
+                    cax, ticks=cluster_ticks[::colorbarstep])
+                cbar.set_label('Clusters')
+            plt.subplots_adjust(wspace=0.01)
+
+            if figname:
+                plt.savefig(figname, bbox_inches='tight')
+                plt.close()
+                fig, ax = None, None
+            return fig, ax
+        else:
+            print("Input the x and y coords")
+
+    def compute_distance_accl(self):
+        linkage_matrix = self.get_linkage()
+
+        dist_sort, lchild, rchild = [], [], []
+        for lnk in linkage_matrix:
+            left_child = lnk[0]
+            right_child = lnk[1]
+            dist_left_right = lnk[2]
+            lchild.append(left_child)
+            rchild.append(right_child)
+            dist_sort.append(dist_left_right)
+
+        dist_sort = np.array(dist_sort)
+        dist_sort_id = np.argsort(dist_sort)
+        # print(dist_sort)
+        df_cv = pd.DataFrame()
+        df_cv["level"] = np.arange(dist_sort.shape[0], 0, -1)
+        df_cv["distance"] = dist_sort
+        accl = df_cv["distance"].diff().diff()
+
+        df_accl = pd.DataFrame()
+        df_accl["level"] = np.arange(dist_sort.shape[0]+1, 1, -1)
+        df_accl["accln"] = accl
+        return df_cv, df_accl
+
+    def optimum_cluster_elbow(self):
+        '''
+        Gives the optimum number of clusters required to express the maximum difference in the similarity using the elbow method
+        '''
+
+        df_cv, df_accl = self.compute_distance_accl()
+        idx = df_accl['accln'].argmax()
+        opt_cluster = df_accl.loc[idx, 'level']
+        df_cv_subset = df_cv[df_cv['level'] == opt_cluster]
+        opt_distance = df_cv_subset['distance'].values[0]
+
+        return opt_cluster, opt_distance
+
+    def plot_optimum_cluster(self,
+                             max_d=None,
+                             figname=None,
+                             figsize=(10, 6),
+                             fontsize=fontsize,
+                             plotpdf=True,
+                             xlabel="Number of Clusters",
+                             ylabel="Distance",
+                             accl_label='Curvature',
+                             accl_color="C10",
+                             dist_label="DTW Distance",
+                             dist_color="k",
+                             xlim=None):
+        '''
+        :param xlim: x limits of the plot e.g., [1,2]
+        :type xlim: list
+        '''
+        df_cv, df_accl = self.compute_distance_accl()
+
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.plot(df_cv["level"], df_cv["distance"],
+                "o-", color=dist_color, label=dist_label)
+
+        ax.plot(
+            df_accl["level"],
+            df_accl["accln"],
+            "o-",
+            color=accl_color,
+            label=accl_label,
+        )
+
+        if max_d is None:
+            max_d, opt_distance = self.optimum_cluster_elbow()
+
+        ax.axvline(x=max_d, label="Optimum cluster", ls="--")
+
+        ax.set_xlabel(xlabel, fontsize=fontsize)
+        ax.set_ylabel(ylabel, fontsize=fontsize)
+        plt.subplots_adjust(wspace=0.01)
+        fig.align_xlabels()
+
+        plt.legend(fontsize=fontsize, bbox_to_anchor=(
+            1.05, 1), loc='upper left')
+        plt.xticks(fontsize=fontsize)
+        plt.yticks(fontsize=fontsize)
+        if xlim is not None:
+            plt.xlim(xlim)
+
+        if figname:
+            plt.savefig(figname, bbox_inches='tight')
+            if plotpdf:
+                figname_pdf = ".".join(figname.split(".")[:-1])+".pdf"
+                ax.figure.savefig(figname_pdf,
+                                  bbox_inches='tight')
+            plt.close()
+            fig, ax = None, None
+        return fig, ax
+
     def compute_distance_matrix(self, compact=True, block=None):
         ds = dtw.distance_matrix_fast(
             self.matrix, compact=compact, block=block)
@@ -285,13 +425,16 @@ class dtw_clustering:
         return stn_sort
 
     def get_linkage(self):
-        if len(self.shuffled_matrix):
-            model, cluster_idx = self.compute_cluster(
-                clusterMatrix=self.shuffled_matrix)
-        else:
+        if self.linkage_matrix is None:
             model, cluster_idx = self.compute_cluster()
-        linkage_matrix = model.linkage
-        return linkage_matrix
+            self.linkage_matrix = model.linkage
+
+        return self.linkage_matrix
+
+    def compute_dendrogram(self):
+        R = hierarchy.dendrogram(
+            self.linkage_matrix, no_plot=True)
+        return R
 
     def plot_dendrogram(self,
                         figname=None,
@@ -302,8 +445,9 @@ class dtw_clustering:
                         ylabel="DTW Distance",
                         truncate_p=None,
                         max_d=None,
-                        annotate_above=10,
-                        plotpdf=True):
+                        annotate_above=0,
+                        plotpdf=True,
+                        leaf_rotation=0):
         '''
         :param truncate_p: show only last truncate_p out of all merged branches
         '''
@@ -314,28 +458,28 @@ class dtw_clustering:
             color_thresh = None
 
         # R = hierarchy.dendrogram(linkage_matrix, no_plot=True)
-        linkage_matrix = self.get_linkage()
+        self.linkage_matrix = self.get_linkage()
         fig, ax = plt.subplots(1, 1, figsize=figsize, sharey=True)
         truncate_args = {}
         if truncate_p:
-            if truncate_p > len(linkage_matrix)-1:
-                truncate_p = len(linkage_matrix)-1
+            if truncate_p > len(self.linkage_matrix)-1:
+                truncate_p = len(self.linkage_matrix)-1
             truncate_args = {"truncate_mode": 'lastp',
                              "p": truncate_p, "show_contracted": True,
                              'show_leaf_counts': False}
         # highest color allowd
 
         R = hierarchy.dendrogram(
-            linkage_matrix, color_threshold=color_thresh, ax=ax, **truncate_args)
-
-        for i, d, c in zip(R['icoord'], R['dcoord'], R['color_list']):
-            x = 0.5 * sum(i[1:3])
-            y = d[1]
-            if y > annotate_above:
-                ax.plot(x, y, 'o', c=c)
-                ax.annotate("%.3g" % y, (x, y), xytext=(0, -5),
-                            textcoords='offset points',
-                            va='top', ha='center', fontsize=xtickfontsize)
+            self.linkage_matrix, color_threshold=color_thresh, ax=ax, **truncate_args, leaf_rotation=leaf_rotation)
+        if annotate_above > 0:
+            for i, d, c in zip(R['icoord'], R['dcoord'], R['color_list']):
+                x = 0.5 * sum(i[1:3])
+                y = d[1]
+                if y > annotate_above:
+                    ax.plot(x, y, 'o', c=c)
+                    ax.annotate("%.3g" % y, (x, y), xytext=(0, -5),
+                                textcoords='offset points',
+                                va='top', ha='center', fontsize=xtickfontsize)
 
         if not truncate_p:
             if len(self.labels):  # if labels for the nodes are given
@@ -345,10 +489,13 @@ class dtw_clustering:
                     stn_sort = self._put_labels(R, addlabels=False)
             else:
                 stn_sort = self._put_labels(R, addlabels=False)
+            # print(stn_sort)
             ax.set_xticks(np.arange(5, len(R["ivl"]) * 10 + 5, 10))
             ax.set_xticklabels(stn_sort, fontsize=xtickfontsize)
         ax.set_ylabel(ylabel, fontsize=labelfontsize)
         ax.set_xlabel(xlabel, fontsize=labelfontsize)
+        plt.xticks(fontsize=xtickfontsize)
+        plt.yticks(fontsize=xtickfontsize)
 
         if max_d:
             ax.axhline(y=max_d, c='k')
@@ -376,15 +523,15 @@ class dtw_clustering:
         '''
         from scipy.cluster.hierarchy import inconsistent, maxinconsts
         from scipy.cluster.hierarchy import fcluster
-        linkage_matrix = self.get_linkage()
-        incons = inconsistent(linkage_matrix, depth)
-        maxincons = maxinconsts(linkage_matrix, incons)
+        self.linkage_matrix = self.get_linkage()
+        incons = inconsistent(self.linkage_matrix, depth)
+        maxincons = maxinconsts(self.linkage_matrix, incons)
         cluster = None
         if return_cluster:
             if t is None:
                 t = np.median(maxincons)
 
-            cluster = fcluster(linkage_matrix, t=t, criterion=criterion)
+            cluster = fcluster(self.linkage_matrix, t=t, criterion=criterion)
         return maxincons, incons, cluster
 
     def plot_hac_iteration(self,
@@ -397,9 +544,9 @@ class dtw_clustering:
                            plot_color="C0",
                            plotpdf=True):
 
-        linkage_matrix = self.get_linkage()
-        xvals = np.arange(0, len(linkage_matrix))
-        distance_vals = [row[2] for row in linkage_matrix]
+        self.linkage_matrix = self.get_linkage()
+        xvals = np.arange(0, len(self.linkage_matrix))
+        distance_vals = [row[2] for row in self.linkage_matrix]
         fig, ax = plt.subplots(figsize=figsize)
         ax.plot(xvals, distance_vals, '--.', color=plot_color)
         ax.set_ylabel(ylabel, fontsize=labelfontsize)
