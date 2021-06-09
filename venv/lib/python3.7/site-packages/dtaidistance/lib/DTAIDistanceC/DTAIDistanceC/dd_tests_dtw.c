@@ -1,0 +1,536 @@
+//
+//  tests_dtw.c
+//  DTAIDistance
+//
+//  Unit tests, depends on https://criterion.readthedocs.io
+//
+//  Copyright © 2020 Wannes Meert.
+//  Apache License, Version 2.0, see LICENSE for details.
+//
+
+#include <stdio.h>
+#include <math.h>
+#include <criterion/criterion.h>
+#include <criterion/parameterized.h>
+
+#include "dd_dtw.h"
+
+
+//#define SKIPALL
+
+
+//----------------------------------------------------
+// MARK: DTW
+
+seq_t dtw_warping_paths_distance(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settings) {
+    idx_t length = dtw_settings_wps_length(l1, l2, settings);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * length);
+    seq_t d = dtw_warping_paths(wps, s1, l1, s2, l2, true, true, settings);
+    free(wps);
+    return d;
+}
+
+struct dtw_test_params {
+    DTWFnPtr fn;
+    DTWSettings settings;
+    int id;
+};
+
+
+ParameterizedTestParameters(dtw, test_series1) {
+    static struct dtw_test_params params[] = {
+        {.fn = dtw_distance, .settings={.window=0}, .id=0},
+        {.fn = dtw_warping_paths_distance, .settings={.window=0}, .id=1},
+        {.fn = dtw_distance, .settings={.window=0, .use_pruning=true}, .id=2}
+    };
+    idx_t nb_params = sizeof (params) / sizeof (struct dtw_test_params);
+    return cr_make_param_array(struct dtw_test_params, params, nb_params);
+}
+
+ParameterizedTest(struct dtw_test_params *param, dtw, test_series1) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
+    double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
+    double d = param->fn(s1, 9, s2, 9, &param->settings);
+//    printf("d=%f\n", d);
+    cr_assert_float_eq(d, sqrt(2), 0.001);
+}
+
+
+ParameterizedTestParameters(dtw, test_series2) {
+    static struct dtw_test_params params[] = {
+        {.fn = dtw_distance, .settings={.window=0}, .id=0},
+        {.fn = dtw_warping_paths_distance, .settings={.window=0}, .id=1},
+        {.fn = dtw_distance, .settings={.window=0, .use_pruning=true}, .id=2},
+        {.fn = dtw_distance, .settings={.window=3}, .id=3},
+        {.fn = dtw_warping_paths_distance, .settings={.window=3}, .id=4},
+        {.fn = dtw_distance, .settings={.window=3, .use_pruning=true}, .id=5}
+    };
+    idx_t nb_params = sizeof (params) / sizeof (struct dtw_test_params);
+    return cr_make_param_array(struct dtw_test_params, params, nb_params);
+}
+
+ParameterizedTest(struct dtw_test_params *param, dtw, test_series2) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    dtw_printprecision_set(6);
+    double s1[] = {0., 0.01, 0.,   0.01, 0., 0.,   0.,   0.01, 0.01, 0.02, 0.,  0.};
+    double s2[] = {0., 0.02, 0.02, 0.,   0., 0.01, 0.01, 0.,   0.,   0.,   0.};
+    double d = param->fn(s1, 12, s2, 11, &param->settings);
+    cr_assert_float_eq(d, 0.02, 0.001);
+    dtw_printprecision_reset();
+}
+
+
+Test(dtw, test_c_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_dist = 1.1;
+    double d = dtw_distance(s1, 7, s2, 7, &settings);
+    cr_assert_float_eq(d, 1.0, 0.001);
+    d = dtw_warping_paths_distance(s1, 7, s2, 7, &settings);
+    cr_assert_float_eq(d, 1.0, 0.001);
+}
+
+Test(dtw, test_c_b) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_dist = 0.1;
+    double d = dtw_distance(s1, 7, s2, 7, &settings);
+    cr_assert(isinf(d));
+    d = dtw_warping_paths_distance(s1, 7, s2, 7, &settings);
+    cr_assert(isinf(d));
+}
+
+Test(dtw, test_c_c) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_step = 1.1;
+    double d = dtw_distance(s1, 7, s2, 7, &settings);
+    cr_assert_float_eq(d, 1.0, 0.001);
+    d = dtw_warping_paths_distance(s1, 7, s2, 7, &settings);
+    cr_assert_float_eq(d, 1.0, 0.001);
+}
+
+Test(dtw, test_c_d) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_step = 0.1;
+    double d = dtw_distance(s1, 7, s2, 7, &settings);
+    cr_assert(isinf(d));
+    d = dtw_warping_paths_distance(s1, 7, s2, 7, &settings);
+    cr_assert(isinf(d));
+}
+
+Test(dtw, test_d_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double maxval_thirtytwobit = 2147483647;
+    double s1[] = {maxval_thirtytwobit, maxval_thirtytwobit, 1, 2, 1, 0, 1, 0, 0};
+    double s2[] = {1., 2, 0, 0, 0, 0, 0, 1, 0};
+    DTWSettings settings = dtw_settings_default();
+    double d = dtw_distance(s1, 9, s2, 9, &settings);
+    cr_assert_float_eq(d, 3037000496.440516, 0.001);
+    d = dtw_warping_paths_distance(s1, 9, s2, 9, &settings);
+    cr_assert_float_eq(d, 3037000496.440516, 0.001);
+}
+
+// MARK DTW - PrunedDTW
+
+Test(dtwp, test_c_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.use_pruning = true;
+    double d = dtw_distance(s1, 7, s2, 7, &settings);
+    cr_assert_float_eq(d, 1.0, 0.001);
+    d = dtw_warping_paths_distance(s1, 7, s2, 7, &settings);
+    cr_assert_float_eq(d, 1.0, 0.001);
+}
+
+Test(dtwp, test_c_c) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_step = 1.1;
+    settings.use_pruning = true;
+    double d = dtw_distance(s1, 7, s2, 7, &settings);
+    cr_assert_float_eq(d, 1.0, 0.001);
+    d = dtw_warping_paths_distance(s1, 7, s2, 7, &settings);
+    cr_assert_float_eq(d, 1.0, 0.001);
+}
+
+Test(dtwp, test_c_d) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_step = 0.1;
+    settings.use_pruning = true;
+    double d = dtw_distance(s1, 7, s2, 7, &settings);
+    cr_assert(isinf(d));
+    d = dtw_warping_paths_distance(s1, 7, s2, 7, &settings);
+    cr_assert(isinf(d));
+}
+
+Test(dtwp, test_d_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double maxval_thirtytwobit = 2147483647;
+    double s1[] = {maxval_thirtytwobit, maxval_thirtytwobit, 1, 2, 1, 0, 1, 0, 0};
+    double s2[] = {1., 2, 0, 0, 0, 0, 0, 1, 0};
+    DTWSettings settings = dtw_settings_default();
+    settings.use_pruning = true;
+    double d = dtw_distance(s1, 9, s2, 9, &settings);
+    cr_assert_float_eq(d, 3037000496.440516, 0.001);
+    d = dtw_warping_paths_distance(s1, 9, s2, 9, &settings);
+    cr_assert_float_eq(d, 3037000496.440516, 0.001);
+}
+
+ParameterizedTestParameters(dtw, test_e) {
+    static struct dtw_test_params params[] = {
+        {.fn = dtw_distance, .settings={.window=0}, .id=0},
+        {.fn = dtw_warping_paths_distance, .settings={.window=0}, .id=1},
+        {.fn = dtw_distance, .settings={.window=0, .use_pruning=true, .max_dist=0.2}, .id=2},
+        {.fn = dtw_warping_paths_distance, .settings={.window=0, .use_pruning=true, .max_dist=0.2}, .id=3}
+    };
+    idx_t nb_params = sizeof (params) / sizeof (struct dtw_test_params);
+    return cr_make_param_array(struct dtw_test_params, params, nb_params);
+}
+
+ParameterizedTest(struct dtw_test_params *param, dtw, test_e) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {5.005335029629605081e-01, 5.157722489130834864e-01, 4.804319657333316340e-01, 4.520537745752661318e-01, 4.867408184050183717e-01, 4.806534229629605415e-01, 4.530552579964135518e-01, 4.667067057333316171e-01, 4.567955137333316040e-01, 4.414902037333315876e-01, 4.240597964014319321e-01, 4.225263829008334970e-01, 4.030970017333316280e-01, 4.404482984865574768e-01, 3.852339312962939077e-01, 3.634947117333316435e-01, 3.861488867383516266e-01, 3.413363679008334928e-01, 3.451913457333316004e-01, 3.695692377333316680e-01, 3.434781337333315809e-01, 3.063217006568062506e-01, 2.845283817333316145e-01, 2.955394357333315791e-01, 3.151374838781335619e-01, 2.561411067352764026e-01, 2.301194263297469400e-01, 2.478605028202762184e-01, 1.972828198566299318e-01, 2.150545617333316228e-01, 2.232865857333316273e-01, 2.492665580680986370e-01, 2.144049374050155388e-01, 2.079081117333316520e-01, 1.879600957333316391e-01, 1.638555197333316227e-01, 1.425566689000865583e-01, 2.016327177333316067e-01, 2.290943870240647606e-01, 1.900932117333316296e-01, 1.503233018025057766e-01, 1.970833717333316248e-01, 1.999393777333316191e-01, 2.018818837333316019e-01, 2.554168153357214144e-01, 2.345002377333316179e-01, 2.407103957333316113e-01, 2.762874997333316096e-01, 3.059693477333316203e-01, 3.328774862341668528e-01, 3.583867537333316200e-01, 3.743879884050183016e-01, 4.266385131705089373e-01, 4.445410410742424712e-01, 4.642271795675002033e-01, 4.402678696630802357e-01, 4.814591396296271641e-01, 5.317886460815400840e-01, 5.548714817383517683e-01, 5.062713000716849709e-01, 5.431524597333317050e-01, 5.537961812962939323e-01, 5.720852595675002261e-01, 5.933977447347652534e-01, 5.845479257333316969e-01, 6.133363017333317568e-01, 6.276481431102108877e-01, 6.132085097333317414e-01, 5.922371597333316862e-01, 5.778388756463566089e-01};
+    double s2[] = {5.584292601075275808e-01, 5.214504501075275522e-01, 4.877978901075275542e-01, 5.078206201075274873e-01, 4.769738701075275644e-01, 4.478925501075275428e-01, 4.242528301075275676e-01, 4.307546401075275644e-01, 4.370594201075275187e-01, 4.331284101075275617e-01, 4.810766301075275475e-01, 4.250942801075275335e-01, 3.973955801075275684e-01, 4.380910701075275693e-01, 3.786794801075275552e-01, 3.850050201075275180e-01, 3.576176301075275621e-01, 2.987050201075275302e-01, 3.377542001075275468e-01, 3.262601401075275187e-01, 3.278248801075275276e-01, 3.347294101075275474e-01, 3.222199801075275594e-01, 3.372712101075275304e-01, 2.526810801075275448e-01, 1.774206901075275622e-01, 2.384015601075275825e-01, 2.419624201075275816e-01, 1.694136001075275677e-01, 1.983933401075275715e-01, 2.272449101075275646e-01, 1.490059201075275563e-01, 1.416013701075275744e-01, 1.997542401075275698e-01, 1.791462801075275613e-01, 1.712680901075275819e-01, 1.851759601075275707e-01, 1.450854801075275591e-01, 1.041379601075275718e-01, 9.028068310752757064e-02, 1.358144301075275839e-01, 2.006444701075275616e-01, 2.003521501075275768e-01, 2.100136501075275663e-01, 2.521797401075275280e-01, 2.364524601075275734e-01, 2.236850301075275771e-01, 2.873612101075275205e-01, 3.358473801075275156e-01, 3.288144201075275386e-01, 3.195859301075275605e-01, 3.482947201075275445e-01, 4.032929801075275655e-01, 4.566962501075275682e-01, 5.173766201075274962e-01, 5.463256501075275384e-01, 5.172673701075275465e-01, 5.054312901075275200e-01, 5.344046101075274890e-01, 5.389180101075274898e-01, 5.188896901075275014e-01, 5.484243401075274971e-01, 5.899157901075275934e-01, 5.987863201075275255e-01, 6.357147701075275270e-01, 6.277379101075275525e-01, 5.519873201075274904e-01, 5.634240801075275362e-01, 6.307956401075275332e-01, 6.488636001075275272e-01};
+    double d = param->fn(s1, 70, s2, 70, &param->settings);
+//    printf("d=%f\n", d);
+    cr_assert_float_eq(d, 0.19430270196116387, 0.001);
+}
+
+// MARK: DTW - PSI
+
+Test(dtw_psi, test_a_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.,0.48,0.84,1.,0.91,0.6,0.14,-0.35,-0.76,-0.98,-0.96,-0.71,-0.28,0.22,
+                   0.66,0.94,0.99,0.8,0.41,-0.08,-0.54,-0.88,-1.,-0.88,-0.54,-0.07,0.42,
+                   0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34,0.15,0.61};
+    double s2[] = {-0.84,-0.48,0.,0.48,0.84,1.,0.91,0.6,0.14,-0.35,-0.76,-0.98,-0.96,-0.71,
+                   -0.28,0.22,0.66,0.94,0.99,0.8,0.41,-0.08,-0.54,-0.88,-1.,-0.88,-0.54,
+                  -0.07,0.42,0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34};
+    DTWSettings settings = dtw_settings_default();
+    settings.psi = 2;
+    double d = dtw_distance(s1, 40, s2, 40, &settings);
+    cr_assert_float_eq(d, 0.0, 0.001);
+    d = dtw_warping_paths_distance(s1, 40, s2, 40, &settings);
+    cr_assert_float_eq(d, 0.0, 0.001);
+}
+
+Test(dtw_psi, test_a_b) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.,0.48,0.84,1.,0.91,0.6,0.14,-0.35,-0.76,-0.98,-0.96,-0.71,-0.28,0.22,
+                   0.66,0.94,0.99,0.8,0.41,-0.08,-0.54,-0.88,-1.,-0.88,-0.54,-0.07,0.42,
+                   0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34,0.15,0.61};
+    double s2[] = {-0.84,-0.48,0.,0.48,0.84,1.,0.91,0.6,0.14,-0.35,-0.76,-0.98,-0.96,-0.71,
+                   -0.28,0.22,0.66,0.94,0.99,0.8,0.41,-0.08,-0.54,-0.88,-1.,-0.88,-0.54,
+                  -0.07,0.42,0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34};
+    DTWSettings settings = dtw_settings_default();
+    settings.psi = 2;
+    double d = dtw_distance(s2, 40, s1, 40, &settings);
+    cr_assert_float_eq(d, 0.0, 0.001);
+    d = dtw_warping_paths_distance(s2, 40, s1, 40, &settings);
+    cr_assert_float_eq(d, 0.0, 0.001);
+}
+
+//----------------------------------------------------
+// MARK: WPS
+
+Test(wps, test_b_a) {
+    #ifdef SKIPALL
+//    cr_skip_test();
+    #endif
+    dtw_printprecision_set(6);
+    double s1[] = {0., 0.01, 0.,   0.01, 0., 0.,   0.,   0.01, 0.01, 0.02, 0.,  0.};
+    double s2[] = {0., 0.02, 0.02, 0.,   0., 0.01, 0.01, 0.,   0.,   0.,   0.};
+    DTWSettings settings = dtw_settings_default();
+    settings.window = 3;
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 13*12);
+    double d = dtw_warping_paths(wps, s1, 12, s2, 11, true, true, &settings);
+    free(wps);
+    cr_assert_float_eq(d, 0.02, 0.001);
+    dtw_printprecision_reset();
+}
+
+Test(wps, test_b_b) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    dtw_printprecision_set(6);
+    double s1[] = {0., 0.01, 0.,   0.01, 0., 0.,   0.,   0.01, 0.01, 0.02, 0.,  0.};
+    double s2[] = {0., 0.02, 0.02, 0.,   0., 0.01, 0.01, 0.,   0.,   0.,   0.};
+    DTWSettings settings = dtw_settings_default();
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 13*12);
+    double d = dtw_warping_paths(wps, s1, 12, s2, 11, true, true, &settings);
+    free(wps);
+    cr_assert_float_eq(d, 0.02, 0.001);
+    dtw_printprecision_reset();
+}
+
+Test(wps, test_c_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_dist = 1.1;
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 8*8);
+    double d = dtw_warping_paths(wps, s1, 7, s2, 7, true, true, &settings);
+    free(wps);
+    cr_assert_float_eq(d, 1.0, 0.001);
+}
+
+Test(wps, test_c_b) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_dist = 0.1;
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 8*8);
+    double d = dtw_warping_paths(wps, s1, 7, s2, 7, true, true, &settings);
+//    dtw_print_wps(wps, 7, 7);
+    free(wps);
+    cr_assert(isinf(d));
+}
+
+Test(wps, test_c_c) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_step = 1.1;
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 8*8);
+    double d = dtw_warping_paths(wps, s1, 7, s2, 7, true, true, &settings);
+    free(wps);
+    cr_assert_float_eq(d, 1.0, 0.001);
+}
+
+Test(wps, test_c_d) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_step = 0.1;
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 8*8);
+    double d = dtw_warping_paths(wps, s1, 7, s2, 7, true, true, &settings);
+    free(wps);
+    cr_assert(isinf(d));
+}
+
+Test(wps, test_d_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double maxval_thirtytwobit = 2147483647;
+    double s1[] = {maxval_thirtytwobit, maxval_thirtytwobit, 1, 2, 1, 0, 1, 0, 0};
+    double s2[] = {1., 2, 0, 0, 0, 0, 0, 1, 0};
+    DTWSettings settings = dtw_settings_default();
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 10*10);
+    double d = dtw_warping_paths(wps, s1, 9, s2, 9, true, true, &settings);
+    free(wps);
+    cr_assert_float_eq(d, 3037000496.440516, 0.001);
+}
+
+Test(wps, test_e_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    seq_t s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0, 0, 0};
+    seq_t s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0};
+    idx_t l1 = 11;
+    idx_t l2 = 11;
+
+    DTWSettings settings = dtw_settings_default();
+    idx_t i1[l1+l2];
+    idx_t i2[l1+l2];
+    for (idx_t i=0; i<l1+l2; i++) {
+        i1[i] = 0;
+        i2[i] = 0;
+    }
+    warping_path(s1, l1, s2, l2, i1, i2, &settings);
+    
+    idx_t r1[] = {10,9,8,7,6,5,5,4,3,2,1,0,0,0,0,0,0,0,0,0,0,0};
+    idx_t r2[] = {10,9,8,7,6,5,4,3,2,1,0,0,0,0,0,0,0,0,0,0,0,0};
+    
+//    for (idx_t i=0; i<l1+l2; i++) {
+//        printf("%zu %zu\n", i1[i], r1[i]);
+//        cr_assert_eq(i1[i], r1[i]);
+//        cr_assert_eq(i2[i], r2[i]);
+//    }
+
+    cr_assert_arr_eq(i1, r1, sizeof(r1));
+    cr_assert_arr_eq(i2, r2, sizeof(r2));
+}
+
+
+//----------------------------------------------------
+// MARK: WPS - PSI
+
+Test(wps_psi, test_a_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.,0.48,0.84,1.,0.91,0.6,0.14,-0.35,-0.76,-0.98,-0.96,-0.71,-0.28,0.22,
+                   0.66,0.94,0.99,0.8,0.41,-0.08,-0.54,-0.88,-1.,-0.88,-0.54,-0.07,0.42,
+                   0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34,0.15,0.61};
+    double s2[] = {-0.84,-0.48,0.,0.48,0.84,1.,0.91,0.6,0.14,-0.35,-0.76,-0.98,-0.96,-0.71,
+                   -0.28,0.22,0.66,0.94,0.99,0.8,0.41,-0.08,-0.54,-0.88,-1.,-0.88,-0.54,
+                  -0.07,0.42,0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34};
+    DTWSettings settings = dtw_settings_default();
+    settings.psi = 2;
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 41*41);
+    double d = dtw_warping_paths(wps, s1, 40, s2, 40, true, true, &settings);
+    free(wps);
+    cr_assert_float_eq(d, 0.0, 0.001);
+}
+
+Test(wps_psi, test_a_b) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.,0.48,0.84,1.,0.91,0.6,0.14,-0.35,-0.76,-0.98,-0.96,-0.71,-0.28,0.22,
+                   0.66,0.94,0.99,0.8,0.41,-0.08,-0.54,-0.88,-1.,-0.88,-0.54,-0.07,0.42,
+                   0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34,0.15,0.61};
+    double s2[] = {-0.84,-0.48,0.,0.48,0.84,1.,0.91,0.6,0.14,-0.35,-0.76,-0.98,-0.96,-0.71,
+                   -0.28,0.22,0.66,0.94,0.99,0.8,0.41,-0.08,-0.54,-0.88,-1.,-0.88,-0.54,
+                  -0.07,0.42,0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34};
+    DTWSettings settings = dtw_settings_default();
+    settings.psi = 2;
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 41*41);
+    double d = dtw_warping_paths(wps, s2, 40, s1, 40, true, true, &settings);
+    free(wps);
+    cr_assert_float_eq(d, 0.0, 0.001);
+}
+
+// MARK: NDIM
+
+Test(ndim, test_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0, 0, 0, 1, 2, 1, 0,  1, 0, 0};
+    double s2[] = {0, 0, 2, 1, 0, 1, 0, .5, 0, 0};
+    DTWSettings settings = dtw_settings_default();
+    seq_t d = dtw_distance_ndim(s1, 5, s2, 5, 2, &settings);
+//    printf("d=%f\n", d);
+    cr_assert_float_eq(d, 1.118033988749895, 0.001);
+}
+
+//----------------------------------------------------
+// MARK: DBA
+
+Test(dba, test_a_matrix) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    
+    double s[] = {
+        0.5, 1, 2, 3, 2.0, 2.1, 1.0, 0, 0, 0, // Row 0
+        0.4, 0, 1, 1.5, 1.9, 2.0, 0.9, 1, 0, 0 // Row 1
+    };
+    double exp_avg[] = {0.25, 1.1666666666666667, 1.95, 2.5, 2.0, 2.05, 0.9666666666666667, 0.0, 0.0, 0.0};
+    idx_t nb_cols = 10;
+    idx_t nb_rows = 2;
+    seq_t c[nb_cols];
+    for (idx_t i=0; i<nb_cols; i++) { // Copy first series
+        c[i] = s[i];
+    }
+//    bit_array(mask, nb_rows)
+    ba_t mask[bit_bytes(nb_rows)];
+    for (int i=0; i<nb_rows; i++) {mask[i]=0;}
+    bit_set(mask, 0);
+    bit_set(mask, 1);
+    DTWSettings settings = dtw_settings_default();
+    
+    dtw_dba_matrix(s, nb_rows, nb_cols, c, nb_cols, mask, &settings);
+    
+    for (idx_t i=0; i<nb_cols; i++) {
+        cr_assert_float_eq(c[i], exp_avg[i], 0.001);
+    }
+}
+
+Test(dba, test_a_ptrs) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    
+    double s1[] = {0.5, 1, 2, 3, 2.0, 2.1, 1.0, 0, 0, 0};
+    double s2[] = {0.4, 0, 1, 1.5, 1.9, 2.0, 0.9, 1, 0, 0};
+    double **s = (double **)malloc(2 * sizeof(double *));
+    s[0] = s1;
+    s[1] = s2;
+    
+    double exp_avg[] = {0.25, 1.1666666666666667, 1.95, 2.5, 2.0, 2.05, 0.9666666666666667, 0.0, 0.0, 0.0};
+    idx_t nb_cols = 10;
+    idx_t nb_rows = 2;
+    idx_t lengths[2] = {nb_cols, nb_cols};
+    seq_t c[nb_cols];
+    for (idx_t i=0; i<nb_cols; i++) { // Copy first series
+        c[i] = s[0][i];
+    }
+//    bit_array(mask, nb_rows)
+    ba_t mask[bit_bytes(nb_rows)];
+    for (int i=0; i<nb_rows; i++) {mask[i]=0;}
+    bit_set(mask, 0);
+    bit_set(mask, 1);
+    DTWSettings settings = dtw_settings_default();
+        
+    dtw_dba_ptrs(s, nb_rows, lengths, c, nb_cols, mask, &settings);
+    
+    for (idx_t i=0; i<nb_cols; i++) {
+        cr_assert_float_eq(c[i], exp_avg[i], 0.001);
+    }
+    
+    free(s);
+}
+
