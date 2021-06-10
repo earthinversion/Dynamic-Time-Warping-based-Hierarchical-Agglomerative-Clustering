@@ -42,7 +42,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="dtwhaclustering.analysis_support" href="../modules/analysis_support.html" />
-    <link rel="prev" title="Welcome to dtwhaclustering’s documentation!" href="../index.html" /> 
+    <link rel="prev" title="dtwhaclustering" href="../index.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -90,13 +90,16 @@
               <p class="caption"><span class="caption-text">Usage</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#from-pypi">From PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#install-from-pypi">Install from PyPI</a></li>
 </ul>
 </li>
 </ul>
 <p class="caption"><span class="caption-text">Modules</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../modules/analysis_support.html">dtwhaclustering.analysis_support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules/plot_linear_trend.html">dtwhaclustering.plot_linear_trend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules/plot_stations.html">dtwhaclustering.plot_stations</a></li>
 </ul>
 
             
@@ -166,8 +169,20 @@
             
   <div class="section" id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="from-pypi">
-<h2>From PyPI<a class="headerlink" href="#from-pypi" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dtaidistance</span></code>: For computing DTW distance</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pygmt</span></code>: For plotting high-resolution maps</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pandas</span></code>: Analyze tabular data</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">numpy</span></code>: Computation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">matplotlib</span></code>: Plotting time series</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scipy</span></code>: Interpolating data</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">xarray</span></code>: Multilayered data structure</p></li>
+</ol>
+</div>
+<div class="section" id="install-from-pypi">
+<h2>Install from PyPI<a class="headerlink" href="#install-from-pypi" title="Permalink to this headline">¶</a></h2>
 <p>This packages is available on PyPI (requires Python 3):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">dtwhaclustering</span>
 </pre></div>
@@ -182,7 +197,7 @@
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="../modules/analysis_support.html" class="btn btn-neutral float-right" title="dtwhaclustering.analysis_support" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="../index.html" class="btn btn-neutral float-left" title="Welcome to dtwhaclustering’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../index.html" class="btn btn-neutral float-left" title="dtwhaclustering" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

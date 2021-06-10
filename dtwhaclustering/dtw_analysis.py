@@ -8,14 +8,15 @@ This module is built around the dtaidistance package for the DTW computation and
 """
 
 import matplotlib
-from scipy.cluster.hierarchy import to_tree
 from dtaidistance import dtw
 from dtaidistance import dtw_visualisation as dtwvis
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.cluster import hierarchy
 from scipy.cluster.hierarchy import fcluster
-from matplotlib.ticker import MaxNLocator
+import pygmt
+from scipy.interpolate import griddata
+import xarray as xr
 
 
 import pandas as pd
@@ -31,10 +32,6 @@ plt.rc('xtick', labelsize=fontsize-10)  # fontsize of the x tick labels
 plt.rc('ytick', labelsize=fontsize-10)  # fontsize of the y tick labels
 plt.rc('legend', fontsize=fontsize)  # fontsize of the legend
 
-# # default matplotlib parameters
-# font = {'family': 'Times',
-#         'weight': 'bold',
-#         'size': fontsize}
 
 # matplotlib.rc('font', **font)
 plt.rcParams["figure.figsize"] = (12, 6)
@@ -42,6 +39,12 @@ plt.style.use('ggplot')
 
 # to edit text in Illustrator
 matplotlib.rcParams['pdf.fonttype'] = 42
+
+
+kwargs_default = {
+    'fontsize': fontsize,
+    'figsize': (10, 8)
+}
 
 
 class dtw_signal_pairs:
@@ -59,10 +62,10 @@ class dtw_signal_pairs:
         '''
         fig, ax = plt.subplots(2, 1)
         ax[0].plot(self.s1, color="C0", lw=1)
-        ax[0].set_ylabel(self.labels[0], fontsize=fontsize)
+        ax[0].set_ylabel(self.labels[0], fontsize=kwargs_default['fontsize'])
 
         ax[1].plot(self.s2, color="C1", lw=1)
-        ax[1].set_ylabel(self.labels[1], fontsize=fontsize)
+        ax[1].set_ylabel(self.labels[1], fontsize=kwargs_default['fontsize'])
 
         if figname:
             plt.savefig(figname, bbox_inches='tight', dpi=300)
@@ -118,8 +121,8 @@ class dtw_signal_pairs:
 
         fig, ax = dtwvis.plot_warping(
             self.s1, self.s2, self.compute_warping_path())
-        ax[0].set_ylabel(self.labels[0], fontsize=fontsize)
-        ax[1].set_ylabel(self.labels[1], fontsize=fontsize)
+        ax[0].set_ylabel(self.labels[0], fontsize=kwargs_default['fontsize'])
+        ax[1].set_ylabel(self.labels[1], fontsize=kwargs_default['fontsize'])
 
         if figname:
             plt.savefig(figname, bbox_inches='tight')
@@ -136,8 +139,8 @@ class dtw_signal_pairs:
 
         fig, ax = dtwvis.plot_warpingpaths(
             self.s1, self.s2, path, shownumbers=shownumbers, showlegend=showlegend)
-        ax[0].set_ylabel(self.labels[0], fontsize=fontsize)
-        ax[1].set_ylabel(self.labels[1], fontsize=fontsize)
+        ax[0].set_ylabel(self.labels[0], fontsize=kwargs_default['fontsize'])
+        ax[1].set_ylabel(self.labels[1], fontsize=kwargs_default['fontsize'])
         if figname:
             plt.savefig(figname, bbox_inches='tight')
             plt.close()
@@ -145,25 +148,27 @@ class dtw_signal_pairs:
         return fig, ax
 
 
-def plot_signals(matrix, labels=[], figname=None, figsize=(10, 6), fontsize=fontsize, plotpdf=True):
+def plot_signals(matrix, labels=[], figname=None, plotpdf=True):
     fig, ax = plt.subplots(
-        nrows=matrix.shape[0], sharex=True, figsize=figsize)
+        nrows=matrix.shape[0], sharex=True, figsize=kwargs_default['figsize'])
     _labels = []
     for i in range(matrix.shape[0]):
         ax[i].plot(matrix[i, :], color=f"C{i}")
         if len(labels) == 0:
             lab = f"S{i}"
-            ax[i].set_ylabel(lab, fontsize=fontsize)
+            ax[i].set_ylabel(lab, fontsize=kwargs_default['fontsize'])
             _labels.append(lab)
     if len(labels):
         try:
             for iaxx, axx in enumerate(ax):
-                axx.set_ylabel(f"{labels[iaxx]}", fontsize=fontsize)
+                axx.set_ylabel(f"{labels[iaxx]}",
+                               fontsize=kwargs_default['fontsize'])
         except Exception as e:
             print(e)
             for i in range(matrix.shape[0]):
                 if len(labels) == 0:
-                    ax[i].set_ylabel(f"S{i}", fontsize=fontsize)
+                    ax[i].set_ylabel(
+                        f"S{i}", fontsize=kwargs_default['fontsize'])
     if figname:
         plt.savefig(figname, bbox_inches='tight')
         if plotpdf:
@@ -179,8 +184,8 @@ def plot_signals(matrix, labels=[], figname=None, figsize=(10, 6), fontsize=font
     return fig, ax
 
 
-def plot_cluster(lons, lats, figname=None, figsize=(10, 6), fontsize=fontsize, plotpdf=True):
-    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+def plot_cluster(lons, lats, figname=None, figsize=(10, 10), plotpdf=True):
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
     labels = []
     clusterIdx = 0
     for ilonlat, (loncluster, latcluster) in enumerate(zip(lons, lats)):
@@ -194,9 +199,10 @@ def plot_cluster(lons, lats, figname=None, figsize=(10, 6), fontsize=fontsize, p
         if (ilonlat+1) % 3 == 0:
             clusterIdx += 1
 
-    plt.legend(fontsize=26, bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.xticks(fontsize=26)
-    plt.yticks(fontsize=26)
+    plt.legend(fontsize=kwargs_default['fontsize'], bbox_to_anchor=(
+        1.05, 1), loc='upper left')
+    plt.xticks(fontsize=kwargs_default['fontsize'])
+    plt.yticks(fontsize=kwargs_default['fontsize'])
     if figname:
         plt.savefig(figname, bbox_inches='tight')
         if plotpdf:
@@ -218,7 +224,8 @@ def shuffle_signals(matrix, labels=[], plot_signals=False, figsize=(10, 12), fig
             nrows=matrix.shape[0], sharex=True, figsize=figsize)
         for i, randidx in enumerate(ind_rand_perm):
             ax[i].plot(shuffled_matrix[i, :], color=f"C{i}")
-            ax[i].set_ylabel(f"S{randidx}", fontsize=fontsize)
+            ax[i].set_ylabel(
+                f"S{randidx}", fontsize=kwargs_default['fontsize'])
 
         if figname:
             plt.savefig(figname, bbox_inches='tight')
@@ -251,7 +258,7 @@ class dtw_clustering:
             self.longitudes = None
             self.latitudes = None
 
-    def plot_signals(self, figname=None, figsize=(10, 6), fontsize=fontsize):
+    def plot_signals(self, figname=None, figsize=(10, 6), fontsize=kwargs_default['fontsize']):
         labels = self.labels
         fig, ax = plt.subplots(
             nrows=self.matrix.shape[0], sharex=True, figsize=figsize)
@@ -274,13 +281,14 @@ class dtw_clustering:
             fig, ax = None, None
         return fig, ax
 
-    def plot_cluster_xymap(self, max_d, figname=None, xlabel='x', ylabel='y', figsize=(10, 10), fontsize=fontsize, colorbar=True, colorbarstep=1):
+    def plot_cluster_xymap(self, dtw_distance, figname=None, xlabel='x', ylabel='y', colorbar=True, colorbarstep=1, scale=2):
         if self.longitudes is not None:
             Z = self.get_linkage()
-            clusters = fcluster(Z, max_d, criterion='distance')
-            print(list(set(clusters)))
+            clusters = fcluster(Z, dtw_distance, criterion='distance')
             cluster_ticks = list(set(clusters))
-            print(cluster_ticks)
+            lenx = scale*int(self.longitudes.max()-self.longitudes.min())
+            leny = scale*int(self.latitudes.max()-self.latitudes.min())
+            figsize = (lenx, leny)
 
             fig, ax = plt.subplots(figsize=figsize)
             # plot points with cluster dependent colors
@@ -288,12 +296,12 @@ class dtw_clustering:
             cax = ax.scatter(self.longitudes, self.latitudes,
                              c=clusters, cmap='jet', s=120)
 
-            ax.set_xlabel(xlabel, fontsize=fontsize)
-            ax.set_ylabel(ylabel, fontsize=fontsize)
+            ax.set_xlabel(xlabel, fontsize=kwargs_default['fontsize'])
+            ax.set_ylabel(ylabel, fontsize=kwargs_default['fontsize'])
             if colorbar:
                 cbar = fig.colorbar(
                     cax, ticks=cluster_ticks[::colorbarstep])
-                cbar.set_label('Clusters')
+                cbar.set_label('Clusters', fontsize=kwargs_default['fontsize'])
             plt.subplots_adjust(wspace=0.01)
 
             if figname:
@@ -303,6 +311,184 @@ class dtw_clustering:
             return fig, ax
         else:
             print("Input the x and y coords")
+
+    def plot_cluster_geomap(self,
+                            dtw_distance,
+                            minlon=None,
+                            maxlon=None,
+                            minlat=None,
+                            maxlat=None,
+                            figname="dtw_cluster.pdf",
+                            colorbar=True,
+                            colorbarstep=1,
+                            doffset=1,
+                            dpi=720,
+                            topo_data='@earth_relief_15s',
+                            plot_topo=False,
+                            markerstyle='c0.3c',
+                            cmap_topo='topo',
+                            cmap_data='jet'
+                            ):
+        if self.longitudes is not None:
+            Z = self.get_linkage()
+            clusters = fcluster(Z, dtw_distance, criterion='distance')
+            cluster_ticks = list(set(clusters))
+
+            if minlon is None and maxlon is None and minlat is None and maxlat is None:
+                minlon = self.longitudes.min()-doffset
+                maxlon = self.longitudes.max()+doffset
+                minlat = self.latitudes.min()-doffset
+                maxlat = self.latitudes.max()+doffset
+            fig = pygmt.Figure()
+            # Plot the earth relief grid on Cylindrical Stereographic projection, masking land areas
+            fig.basemap(
+                region=[minlon, maxlon, minlat, maxlat], projection="M4i", frame=True)
+            if plot_topo:
+                pygmt.makecpt(
+                    cmap=cmap_topo,
+                    series='-8000/8000/1000',
+                    continuous=True
+                )
+                fig.grdimage(
+                    grid=topo_data,
+                    region=[minlon, maxlon, minlat, maxlat],
+                    shading=True,
+                    frame=True
+                )
+                fig.coast(
+                    region=[minlon, maxlon, minlat, maxlat],
+                    projection='M4i',
+                    shorelines=True,
+                    frame=True
+                )
+            else:
+                fig.coast(land="#666666", shorelines=True)
+            # Plot the sampled bathymetry points using circles (c) of 0.15 cm
+            # Points are colored using elevation values (normalized for visual purposes)
+            pygmt.makecpt(
+                cmap=cmap_data,
+                series=f'{min(clusters)}/{max(clusters)}/{colorbarstep}',
+                continuous=True
+            )
+            fig.plot(
+                x=self.longitudes,
+                y=self.latitudes,
+                style=markerstyle,
+                pen='black',
+                cmap=True,
+                color=clusters,
+            )
+            # Plot colorbar
+            fig.colorbar(
+                frame='+l"Clusters"'
+            )
+            # fig.show()
+            fig.savefig(figname, crop=True, dpi=dpi)
+        else:
+            print("Input the x and y coords")
+
+    def _compute_interpolation(self, clusters, lonrange=(120., 122.), latrange=(21.8, 25.6), gridstep=0.01):
+
+        coordinates0 = np.column_stack((self.longitudes, self.latitudes))
+        lonmin, lonmax = lonrange
+        latmin, latmax = latrange
+        step = gridstep
+        lons = np.arange(lonmin, lonmax, step)
+        lats = np.arange(latmin, latmax, step)
+
+        xintrp, yintrp = np.meshgrid(lons, lats)
+        z1 = griddata(coordinates0, clusters,
+                      (xintrp, yintrp), method='nearest')
+        xintrp = np.array(xintrp, dtype=np.float32)
+        yintrp = np.array(yintrp, dtype=np.float32)
+
+        z2 = z1[~np.isnan(z1)]
+
+        cmapminmax = [np.abs(z2.min()), np.abs(z2.max())]
+
+        da = xr.DataArray(z1, dims=("lat", "long"), coords={
+            "long": lons, "lat": lats},)
+
+        return da, cmapminmax
+
+    def plot_cluster_geomap_interpolated(self, dtw_distance,
+                                         lonrange=(120., 122.),
+                                         latrange=(21.8, 25.6),
+                                         gridstep=0.01,
+                                         figname="dtw_cluster_interp.pdf",
+                                         minlon=None,
+                                         maxlon=None,
+                                         minlat=None,
+                                         maxlat=None,
+                                         markerstyle='c0.3c',
+                                         dpi=720,
+                                         doffset=1,
+                                         plot_data=True,
+                                         plot_intrp=True):
+        Z = self.get_linkage()
+        clusters = fcluster(Z, dtw_distance, criterion='distance')
+        da, cmapminmax = self._compute_interpolation(clusters,
+                                                     lonrange=lonrange, latrange=latrange, gridstep=gridstep)
+
+        if minlon is None and maxlon is None and minlat is None and maxlat is None:
+            minlon = self.longitudes.min()-doffset
+            maxlon = self.longitudes.max()+doffset
+            minlat = self.latitudes.min()-doffset
+            maxlat = self.latitudes.max()+doffset
+
+        frame = ["a1f0.25", "WSen"]
+        # Visualization
+        fig = pygmt.Figure()
+        if plot_intrp:
+            pygmt.makecpt(
+                cmap='jet',
+                series=f'{cmapminmax[0]}/{cmapminmax[1]}/1',
+                #     series='0/5000/100',
+                continuous=True
+            )
+
+            # #plot high res topography
+            fig.grdimage(
+                region=[minlon, maxlon, minlat, maxlat],
+                grid=da,
+                projection='M4i',
+                interpolation='l'
+            )
+
+        # plot coastlines
+        fig.coast(
+            region=[minlon, maxlon, minlat, maxlat],
+            shorelines=True,
+            water="#add8e6",
+            frame=frame,
+            area_thresh=1000
+        )
+        if plot_data:
+            pygmt.makecpt(
+                cmap='jet',
+                series=[cmapminmax[0], cmapminmax[1], 1],
+                continuous=True
+            )
+
+            fig.plot(
+                x=self.longitudes,
+                y=self.latitudes,
+                style=markerstyle,
+                pen='black',
+                cmap=True,
+                color=clusters,
+            )
+
+        # Plot colorbar
+        # Default is horizontal colorbar
+        fig.colorbar(
+            frame=["x+lClusters"],
+            position="JMR+o1c/0c",
+
+        )
+
+        # save figure as pdf
+        fig.savefig(f"{figname}", crop=True, dpi=dpi)
 
     def compute_distance_accl(self):
         linkage_matrix = self.get_linkage()
@@ -346,7 +532,6 @@ class dtw_clustering:
                              max_d=None,
                              figname=None,
                              figsize=(10, 6),
-                             fontsize=fontsize,
                              plotpdf=True,
                              xlabel="Number of Clusters",
                              ylabel="Distance",
@@ -378,15 +563,15 @@ class dtw_clustering:
 
         ax.axvline(x=max_d, label="Optimum cluster", ls="--")
 
-        ax.set_xlabel(xlabel, fontsize=fontsize)
-        ax.set_ylabel(ylabel, fontsize=fontsize)
+        ax.set_xlabel(xlabel, fontsize=kwargs_default['fontsize'])
+        ax.set_ylabel(ylabel, fontsize=kwargs_default['fontsize'])
         plt.subplots_adjust(wspace=0.01)
         fig.align_xlabels()
 
-        plt.legend(fontsize=fontsize, bbox_to_anchor=(
+        plt.legend(fontsize=kwargs_default['fontsize'], bbox_to_anchor=(
             1.05, 1), loc='upper left')
-        plt.xticks(fontsize=fontsize)
-        plt.yticks(fontsize=fontsize)
+        plt.xticks(fontsize=kwargs_default['fontsize'])
+        plt.yticks(fontsize=kwargs_default['fontsize'])
         if xlim is not None:
             plt.xlim(xlim)
 
@@ -410,7 +595,7 @@ class dtw_clustering:
             clusterMatrix = self.matrix
 
         model = HierarchicalTree(
-            dists_fun=dtw.distance_matrix_fast, dists_options={}, show_progress=False)
+            dists_fun=dtw.distance_matrix_fast, dists_options={}, show_progress=True)
         cluster_idx = model.fit(clusterMatrix)
         return model, cluster_idx
 
@@ -439,8 +624,8 @@ class dtw_clustering:
     def plot_dendrogram(self,
                         figname=None,
                         figsize=(20, 8),
-                        xtickfontsize=fontsize,
-                        labelfontsize=fontsize,
+                        xtickfontsize=kwargs_default['fontsize'],
+                        labelfontsize=kwargs_default['fontsize'],
                         xlabel="3-D Stations",
                         ylabel="DTW Distance",
                         truncate_p=None,
@@ -508,7 +693,7 @@ class dtw_clustering:
                                   bbox_inches='tight')
                 # plt.savefig(figname_ps, bbox_inches='tight')
             plt.close()
-            fig, ax = None, None
+            return
         return fig, ax
 
     def compute_cut_off_inconsistency(self, t=None, depth=2, criterion='inconsistent', return_cluster=False):
@@ -537,8 +722,8 @@ class dtw_clustering:
     def plot_hac_iteration(self,
                            figname=None,
                            figsize=(10, 8),
-                           xtickfontsize=fontsize,
-                           labelfontsize=fontsize,
+                           xtickfontsize=kwargs_default['fontsize'],
+                           labelfontsize=kwargs_default['fontsize'],
                            xlabel="Iteration #",
                            ylabel="DTW Distance",
                            plot_color="C0",

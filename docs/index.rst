@@ -3,10 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to dtwhaclustering's documentation!
-===========================================
+dtwhaclustering
+===============
 
-This is the documentation of the ``dtwhaclustering`` package and examples. 
+Hierarchical Agglomerative Clustering using DTW distance metric for the continuous Global Positioning Satellite (GPS) displacements data.
 
 .. toctree::
    :caption: Usage
@@ -20,6 +20,8 @@ This is the documentation of the ``dtwhaclustering`` package and examples.
    :maxdepth: 2
    
    modules/analysis_support
+   modules/plot_linear_trend
+   modules/plot_stations
 
 
 Indices and tables
