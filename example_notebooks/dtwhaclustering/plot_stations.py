@@ -19,7 +19,7 @@ def plot_station_map(station_data, minlon=None, maxlon=None, minlat=None, maxlat
                      cmap='etopo1', projection='M4i',
                      datalabel='Stations', markerstyle="i10p",
                      random_station_label=False, stn_labels=None, justify='left',
-                     labelfont="6p,Helvetica-Bold,black", offset="5p/-5p", stn_labels_color='red'):
+                     labelfont="6p,Helvetica-Bold,black", offset="5p/-5p", stn_labels_color='red', rand_justify=False):
     '''
     Plot topographic station map using PyGMT
 
@@ -72,11 +72,14 @@ def plot_station_map(station_data, minlon=None, maxlon=None, minlat=None, maxlat
         frame=True
     )
 
-    # leftoffset = "-8p/-1p"
-    if justify == 'left':
-        justifystr = "TL"
-    else:
-        justifystr = "TR"
+    def get_justify(justify):
+        if justify == 'left':
+            justifystr = "TL"
+        else:
+            justifystr = "TR"
+        return justifystr
+
+    justifystr = get_justify(justify)
 
     stnvalues = df["stn"].values
     lonvalues = df["lon"].values
@@ -105,6 +108,14 @@ def plot_station_map(station_data, minlon=None, maxlon=None, minlat=None, maxlat
         # print(istn, stnvalues[istn])
         if stn_labels is not None and stnvalues[istn] not in stn_labels:
             continue
+
+        if rand_justify:
+            if np.random.rand() > 0.5:
+                justifystr = get_justify(justify='left')
+                offset = "5p/-5p"
+            else:
+                justifystr = get_justify(justify='right')
+                offset = "-10p/-1p"
         fig.text(
             x=lonvalues[istn],
             y=latvalues[istn],
