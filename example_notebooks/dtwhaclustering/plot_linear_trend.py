@@ -13,6 +13,8 @@ import numpy as np
 from scipy.interpolate import griddata
 import xarray as xr
 import pygmt
+from pathlib import Path
+import os
 
 
 def compute_interpolation(df, method='nearest', lonrange=(120., 122.), latrange=(21.8, 25.6), step=0.01):
@@ -52,7 +54,7 @@ def plot_linear_trend_on_map(df, maplonrange=(120., 122.1), maplatrange=(21.8, 2
                              intrp_latrange=(21.8, 25.6), outfig="Maps/slope-plot.png", frame=["a1f0.25", "WSen"],
                              cmap='jet', step=0.01, stn_labels=None, justify='left',
                              labelfont="6p,Helvetica-Bold,black", offset="5p/-5p", markerstyle="i10p", defpen='1p,black',
-                             stn_labels_color='black', rand_justify=False):
+                             stn_labels_color='black', rand_justify=False, water_color='skyblue'):
     '''
     Plot the interpolated linear trend values along with the original data points on a geographical map using PyGMT
 
@@ -65,6 +67,7 @@ def plot_linear_trend_on_map(df, maplonrange=(120., 122.1), maplatrange=(21.8, 2
     :param cmap: colormap for the output map
     :param frame: frame of the output map. See PyGMT docs for details
     :param outfig: output figure name with extension, e.g., `slope-plot.png`
+    :param water_color: color of the water, default: skyblue
     '''
     da, cmapExtreme = compute_interpolation(
         df, lonrange=intrp_lonrange, latrange=intrp_latrange, step=step)
@@ -94,7 +97,7 @@ def plot_linear_trend_on_map(df, maplonrange=(120., 122.1), maplatrange=(21.8, 2
     fig.coast(
         region=[minlon, maxlon, minlat, maxlat],
         shorelines=True,
-        water="#add8e6",
+        water=water_color,
         frame=frame,
         area_thresh=1000
     )
@@ -169,6 +172,11 @@ def plot_linear_trend_on_map(df, maplonrange=(120., 122.1), maplatrange=(21.8, 2
 
     # save figure as pdf
     fig.savefig(f"{outfig}", crop=True)
+    if not ".pdf" in outfig:
+        dirname = os.path.dirname(outfig)
+        outfig0 = Path(outfig).stem
+        outfigpdf = os.path.join(dirname, f"{outfig0}.pdf")
+        fig.savefig(outfigpdf, crop=True)
 
     print(f"Figure saved at {outfig}")
 

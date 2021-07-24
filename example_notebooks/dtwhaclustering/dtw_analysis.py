@@ -777,7 +777,7 @@ class dtw_clustering:
                              "p": truncate_p, "show_contracted": True,
                              'show_leaf_counts': False}
         # highest color allowd
-
+#         print(distance_threshold)
         R = hierarchy.dendrogram(
             self.linkage_matrix, color_threshold=distance_threshold, ax=ax, **truncate_args, leaf_rotation=leaf_rotation)
         if annotate_above > 0:
@@ -807,7 +807,8 @@ class dtw_clustering:
         plt.yticks(fontsize=xtickfontsize)
         _, opt_distance, opt_distance_plotloc = self.optimum_cluster_elbow(
             plotloc=True)
-        ax.axhline(y=opt_distance_plotloc, c='k', lw=2)
+        ax.axhline(y=distance_threshold, c='k', lw=2)
+#         ax.axhline(y=opt_distance_plotloc, c='k', lw=2)
         # if max_d:
         #     ax.axhline(y=max_d, c='k', lw=2)
 
