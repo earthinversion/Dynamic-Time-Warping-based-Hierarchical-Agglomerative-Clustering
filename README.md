@@ -3,6 +3,13 @@ Under review in [Computers and Geosciences](https://www.journals.elsevier.com/co
 
 Codes to perform Dynamic Time Warping Based Hierarchical Agglomerative Clustering of GPS data
 
+## Uses the `dtwhaclustering` package developed for this study
+See Documentation: [dtwhaclustering](https://dtwhaclustering.readthedocs.io/en/latest/)
+
+```
+pip install dtwhaclustering
+```
+
 ## Details
 
 This package include codes for processing the GPS displacement data including least-square modelling for trend, co-seismic jumps, 
