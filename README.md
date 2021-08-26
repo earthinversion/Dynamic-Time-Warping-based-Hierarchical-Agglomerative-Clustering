@@ -1,4 +1,5 @@
 # Dynamic Time Warping based Hierarchical Agglomerative Clustering for continuous GPS displacements of Taiwan
+Under review in [Computers and Geosciences](https://www.journals.elsevier.com/computers-and-geosciences)
 
 Codes to perform Dynamic Time Warping Based Hierarchical Agglomerative Clustering of GPS data
 
