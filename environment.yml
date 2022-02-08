@@ -7,5 +7,6 @@ dependencies:
   - scipy
   - matplotlib
   - seaborn
+  - pip
   - pip:
     - dtwhaclustering
