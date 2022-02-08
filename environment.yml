@@ -1,0 +1,12 @@
+name: dtwhaclusterenv
+channels:
+  - conda-forge
+dependencies:
+  - pandas
+  - pygmt
+  - scipy
+  - matplotlib
+  - seaborn
+  - pip
+  - pip:
+    - dtwhaclustering
