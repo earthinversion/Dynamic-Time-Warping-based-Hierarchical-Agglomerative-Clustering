@@ -10,6 +10,11 @@ See Documentation: [dtwhaclustering](https://dtwhaclustering.readthedocs.io/en/l
 pip install dtwhaclustering
 ```
 
+## You can also open the notebooks in the Binder application online...
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/earthinversion/Dynamic-Time-Warping-based-Hierarchical-Agglomerative-Clustering/master)
+
+
 ## Details
 
 This package include codes for processing the GPS displacement data including least-square modelling for trend, co-seismic jumps, 
