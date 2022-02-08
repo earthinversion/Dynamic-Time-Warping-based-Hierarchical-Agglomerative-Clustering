@@ -3,17 +3,16 @@ Under review in [Computers and Geosciences](https://www.journals.elsevier.com/co
 
 Codes to perform Dynamic Time Warping Based Hierarchical Agglomerative Clustering of GPS data
 
+## You can also open the notebooks in the Binder application online...
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/earthinversion/Dynamic-Time-Warping-based-Hierarchical-Agglomerative-Clustering/master)
+
 ## Uses the `dtwhaclustering` package developed for this study
 See Documentation: [dtwhaclustering](https://dtwhaclustering.readthedocs.io/en/latest/)
 
 ```
 pip install dtwhaclustering
 ```
-
-## You can also open the notebooks in the Binder application online...
-
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/earthinversion/Dynamic-Time-Warping-based-Hierarchical-Agglomerative-Clustering/master)
-
 
 ## Details
 
