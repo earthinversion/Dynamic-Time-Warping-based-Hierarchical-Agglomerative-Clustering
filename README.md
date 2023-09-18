@@ -1,7 +1,6 @@
 # Dynamic Time Warping based Hierarchical Agglomerative Clustering for continuous GPS displacements of Taiwan
-For details, see the research paper: [On analyzing GNSS displacement field variability of Taiwan: Hierarchical Agglomerative Clustering based on Dynamic Time Warping technique](https://doi.org/10.1016/j.cageo.2022.105243)
-
-Codes to perform Dynamic Time Warping Based Hierarchical Agglomerative Clustering of GPS data
+- For details, see the research paper: [On analyzing GNSS displacement field variability of Taiwan: Hierarchical Agglomerative Clustering based on Dynamic Time Warping technique](https://doi.org/10.1016/j.cageo.2022.105243)
+- Codes to perform Dynamic Time Warping Based Hierarchical Agglomerative Clustering of GPS data
 
 ## You can also open the notebooks in the Binder application online...
 
