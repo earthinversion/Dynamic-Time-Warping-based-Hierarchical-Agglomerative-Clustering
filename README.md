@@ -1,5 +1,5 @@
 # Dynamic Time Warping based Hierarchical Agglomerative Clustering for continuous GPS displacements of Taiwan
-Under review in [Computers and Geosciences](https://www.journals.elsevier.com/computers-and-geosciences)
+For details, see the research paper: [On analyzing GNSS displacement field variability of Taiwan: Hierarchical Agglomerative Clustering based on Dynamic Time Warping technique](https://doi.org/10.1016/j.cageo.2022.105243)
 
 Codes to perform Dynamic Time Warping Based Hierarchical Agglomerative Clustering of GPS data
 
@@ -28,3 +28,7 @@ similarity among the waveforms will be obtained using the DTW distance.
 5.	`part5_dtw_clustering_example`: Test the DTW clustering algorithm (and dtwhaclustering package) on the synthetic data. Also compare the results with the Euclidean based HAC method.
 6.	`part6_dtw_clustering_gps_displacements`: Apply the DTW distance-based HAC clustering on the modeled continuous GPS displacement residuals of Taiwan
 7.	`part7significance_test`: Perform Monte-Carlo based simulations to quantify the significance of the outcome of the clustering using DTW. We randomly shuffle the individual time-series data, and perform the HAC clustering. Randomly shuffled time-series lead to the optimal number of clusters equals to as many clusters as we started with.
+
+## Please cite this work as
+1. Kumar, U., Cédric. P. Legendre, Jian-Cheng Lee, Li Zhao, Benjamin Fong Chao (2022) On analyzing GNSS displacement field variability of Taiwan: Hierarchical Agglomerative Clustering based on Dynamic Time Warping technique Computers & Geosciences, 105243. https://doi.org/10.1016/j.cageo.2022.105243
+2. Kumar, U., Legendre, C.P. (2022) Crust-mantle decoupling beneath Afar revealed by Rayleigh-wave tomography Sci Rep 12, 17036 https://doi.org/10.1038/s41598-022-20890-5
